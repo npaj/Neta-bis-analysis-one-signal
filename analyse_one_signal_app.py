@@ -164,7 +164,7 @@ def update_graph(file_name, filepath, background_fn, background_params, t_params
     if file_name is None:
         return dash.no_update
     else:
-        data = np.loadtxt(f'{filepath}\{file_name}')
+        data = np.loadtxt(os.path.join(filepath, file_name))
         data[:, 0] = data[:, 0] - float(params_ini['time-params-background']['t0'])
         data[:, 1] = data[:, 1] - np.average(data[:, 1][data[:, 0] < 0])
         fig = go.Figure(make_subplots(rows=2, cols=1))
