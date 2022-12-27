@@ -50,7 +50,11 @@ class Load():
             Freq_laser = 42e6
             dt = (DeltaF/Freq_laser/fs)*1e9
             timeaxis =np.arange(len(self.data))*dt
+            timeaxis = timeaxis-timeaxis[np.argmax(np.abs(self.data[:,1]))]
             self.data[:,0] = timeaxis
+            
+
+
 
 
     def pretty_print(self):

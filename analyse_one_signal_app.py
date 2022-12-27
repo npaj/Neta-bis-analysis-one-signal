@@ -197,13 +197,13 @@ def update_graph(filetype, file_name, filepath, background_fn, background_params
         if filetype =="LAUM":
             temp= load_data.Load(file_name, filepath, NETA_BIS=True )
         else:
-            temp= load_data.Load(file_name, filepath, False )
+            temp= load_data.Load(file_name, filepath, NETA_BIS=False )
         
         
         data = temp.data
         data[:, 0] = data[:, 0] - float(params_ini['time-params-background']['t0'])
         data[:, 1] = data[:, 1] - np.average(data[:, 1][data[:, 0] < 0])
-        fig = go.Figure(make_subplots(rows=2, cols=1))
+        fig = go.Figure(make_subplots(rows=2, cols=1, shared_xaxes='all'))
         fig.add_trace(go.Scatter(name='Raw signal',
                       x=data[:, 0], y=data[:, 1]), row=1, col=1)
 
@@ -303,7 +303,7 @@ def update_fft_graphs(fftparams, ffttimerange, fig1, background_fn, nclicks2):
             ncols = 3
             subplot_titles=('Raw signal fft', 'Background fit fft','Acousic signal fft')
 
-        fig2 = go.Figure(make_subplots(rows=1, cols=ncols,subplot_titles=subplot_titles,horizontal_spacing = 0.075))
+        fig2 = go.Figure(make_subplots(rows=1, cols=ncols,subplot_titles=subplot_titles,horizontal_spacing = 0.075, shared_xaxes='all'))
 
         freq_raw, resufft_raw = ut.fft_fn(
             data, params_ini['fft-rangeslider'], params_ini['fft-params'])
@@ -405,7 +405,7 @@ def update_time_frequency_graph(tf_child, method, cmap,FIG3,clicks,scale):
     wlet_resolution =html.P(" ")
     if 'data_filt' in globals():
         subplot_titles =('Acoustic signal', method)
-        fig3 =go.FigureWidget(make_subplots(rows=2, cols=1, subplot_titles=subplot_titles))
+        fig3 =go.Figure(make_subplots(rows=2, cols=1, subplot_titles=subplot_titles, shared_xaxes='all'))
         fig3.add_trace(go.Scatter(x=data_filt[:,0], y= data_filt[:,1]),row=1, col=1)
         if method == 'stft':
             t,f, Zstft = ut.stft_fn(data_filt, params_ini[method])
