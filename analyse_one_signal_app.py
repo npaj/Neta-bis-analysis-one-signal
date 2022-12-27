@@ -12,7 +12,6 @@ import ast
 import configparser
 import load_data
 
-from requests import options
 import utility as ut
 from dbc_cards import *
 
