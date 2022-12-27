@@ -10,6 +10,7 @@ import numpy as np
 import os
 import ast
 import configparser
+import load_data
 
 from requests import options
 import utility as ut
@@ -18,6 +19,9 @@ from dbc_cards import *
 
 # Build your components
 app = dash.Dash(external_stylesheets=[dbc.themes.CERULEAN])
+
+global files
+files=[]
 
 config = configparser.ConfigParser()
 config.read('Parameters.ini')
@@ -52,83 +56,105 @@ def write_params_file():
     with open('Parameters.ini', 'w') as configfile:
         config.write(configfile)
 
-
-# Customize Layout
-app.layout = dbc.Container(
-    [
-        html.H1("Data analysis tool box"),
-        html.Hr(),
-        dbc.Row(
-            [
-                dbc.Col([file_card, html.Br(), Params_card_1], md=3),
-                dbc.Col(
-                    html.Div(
+app.layout = html.Div([
+    html.H1("Data analysis tool box"),
+    # html.Hr(),
+    dcc.Tabs(vertical=False,children=[
+        dcc.Tab(label='Single data',children=[
+            dbc.Container(
+                [
+                    # html.H1("Data analysis tool box"),
+                    # html.Hr(),
+                    dbc.Row(
                         [
-                            dcc.Graph(id='raw-signal', figure={}),
-                            html.Div(
-                                [
-                                    html.H6('xlim'),
-                                    rangeslider_graph1_xlim(),
-                                    html.H6('fft time range'),
-                                    rangeslider_fft()
+                            dbc.Col([file_card, html.Br(), Params_card_1], md=3),
+                            dbc.Col(
+                                html.Div(
+                                    [
+                                        dcc.Graph(id='raw-signal', figure={}),
+                                        html.Div(
+                                            [
+                                                html.H6('xlim'),
+                                                rangeslider_graph1_xlim(),
+                                                html.H6('fft time range'),
+                                                rangeslider_fft()
 
-                                ], style={'width': '85%', 'marginLeft': '50px'}
+                                            ], style={'width': '85%', 'marginLeft': '50px'}
+                                        )
+
+                                    ]),
+
+                                md=9),
+                        ],
+                        align="center",
+                    ),
+                    html.Br(),
+                    dbc.Row(
+                        [
+                            dbc.Col([html.Br(), html.Br(), html.Br(),
+                                    html.Br(), fft_card], md=3),
+                            dbc.Col(
+                                html.Div(
+                                    [
+                                        dcc.Graph(id='fft-graphs', figure={})
+
+                                    ]
+                                )
+
                             )
-
-                        ]),
-
-                    md=9),
-            ],
-            align="center",
-        ),
-        html.Br(),
-        dbc.Row(
-            [
-                dbc.Col([html.Br(), html.Br(), html.Br(),
-                        html.Br(), fft_card], md=3),
-                dbc.Col(
-                    html.Div(
-                        [
-                            dcc.Graph(id='fft-graphs', figure={})
-
                         ]
-                    )
 
-                )
-            ]
-
-        ),
+                    ),
 
 
-        html.Br(), html.Br(), 
+                    html.Br(), html.Br(), 
 
-        dbc.Row(
-            [
-                dbc.Col(time_freq_card,md=3),
-                
-                dbc.Col(
-                    html.Div(
+                    dbc.Row(
                         [
-                            dcc.Graph(id='time_frequency_Graph', figure={}),
+                            dbc.Col(time_freq_card,md=3),
+                            
+                            dbc.Col(
+                                html.Div(
+                                    [
+                                        dcc.Graph(id='time_frequency_Graph', figure={}),
+
+                                    ]
+                                ),
+                                md=9
+                            )
 
                         ]
                     ),
-                     md=9
-                )
-
-            ]
+                    
+                    html.Br(), html.Br(),
+                ],
+                fluid=True,
+            )
+        ]
         ),
-        
-        html.Br(), html.Br(),
-    ],
-    fluid=True,
-)
+
+# Tab 2 data comparison
+
+
+
+        dcc.Tab(
+            label='Compare data', children=[
+                dcc.Dropdown(files,
+                     [],
+                     multi=True, id='file_list_compare'),
+
+            ])
+
+
+    ])
+])
 
 # select file call back
 
 
 @app.callback(
     Output('file_list', 'options'),
+    Output('file_list_compare', 'options'),
     Input('filepath', 'value'),)
 def update_output(filepath):
     files = []
@@ -139,13 +165,15 @@ def update_output(filepath):
     except:
         pass
 
-    return files
+    return files,files
 
 
 @app.callback(
     Output('raw-signal', 'figure'),
     Output('graph1_xlim-rangeslider_children', 'children'),
     Output('fft-rangeslider_children', 'children'),
+    Output('file_info', 'value'),
+    Input('file_format', 'value'),
     Input('file_list', 'value'),
     State('filepath', 'value'),
     State('background_select', 'value'),
@@ -156,7 +184,8 @@ def update_output(filepath):
     Input('submit-val_1', 'n_clicks'),
 
 )
-def update_graph(file_name, filepath, background_fn, background_params, t_params_background, x_range, fft_rangeslider, n_click1):
+def update_graph(filetype, file_name, filepath, background_fn, background_params, t_params_background, x_range, fft_rangeslider, n_click1):
+    
     global data
     global data_filt
     global data_back
@@ -164,7 +193,14 @@ def update_graph(file_name, filepath, background_fn, background_params, t_params
     if file_name is None:
         return dash.no_update
     else:
-        data = np.loadtxt(os.path.join(filepath, file_name))
+        # data = np.loadtxt(os.path.join(filepath, file_name))
+        if filetype =="LAUM":
+            temp= load_data.Load(file_name, filepath, NETA_BIS=True )
+        else:
+            temp= load_data.Load(file_name, filepath, False )
+        
+        
+        data = temp.data
         data[:, 0] = data[:, 0] - float(params_ini['time-params-background']['t0'])
         data[:, 1] = data[:, 1] - np.average(data[:, 1][data[:, 0] < 0])
         fig = go.Figure(make_subplots(rows=2, cols=1))
@@ -211,7 +247,7 @@ def update_graph(file_name, filepath, background_fn, background_params, t_params
         fig.update_xaxes(range=x_range, row=1, col=1)
         fig.update_xaxes(range=x_range, row=2, col=1, title_text ='time (ns)')
 
-        return fig, rangeslider_graph1_xlim(xmin=data[:, 0][0], xmax=data[:, 0][-1], value=x_range), rangeslider_fft()
+        return fig, rangeslider_graph1_xlim(xmin=data[:, 0][0], xmax=data[:, 0][-1], value=x_range), rangeslider_fft(), temp.pretty_print()
     else:
         return dash.no_update
 
@@ -344,10 +380,14 @@ def update_TF_Params_children(method):
     Output('TF_card_wlet_resolution','children'),
     Input('TF-parameters','children'),
     Input('TF-options', 'value'),
-    Input('fft-graphs', 'figure'),
-    Input('submit-val_3', 'n_clicks')
+    Input("select_colorscales", "value"),
+    State('fft-graphs', 'figure'),
+    Input('submit-val_3', 'n_clicks'),
+    Input('cmap-rangeslider','value')
 )
-def update_time_frequency_graph(tf_child, method, FIG3,clicks):
+def update_time_frequency_graph(tf_child, method, cmap,FIG3,clicks,scale):
+
+    
     
 
     for ii, key in enumerate(params_ini[method]):
@@ -369,18 +409,22 @@ def update_time_frequency_graph(tf_child, method, FIG3,clicks):
         fig3.add_trace(go.Scatter(x=data_filt[:,0], y= data_filt[:,1]),row=1, col=1)
         if method == 'stft':
             t,f, Zstft = ut.stft_fn(data_filt, params_ini[method])
-            fig3.add_trace(go.Heatmap(x=t, y= f, z=Zstft, colorscale='jet'),row=2, col=1)
+            zmin=np.max(Zstft)*scale[0]/100; zmax =np.max(Zstft)*scale[1]/100
+            fig3.add_trace(go.Heatmap(x=t, y= f, z=Zstft, colorscale=cmap, zmin=zmin, zmax=zmax),row=2, col=1)
         else:
             t,f, Zstft, Ncycle = ut.wavelet_fn(data_filt, params_ini)
-            fig3.add_trace(go.Heatmap(x=t, y= f, z=Zstft, colorscale='jet'),row=2, col=1)
+            zmin=np.max(Zstft)*scale[0]/100; zmax =np.max(Zstft)*scale[1]/100
+            fig3.add_trace(go.Heatmap(x=t, y= f, z=Zstft, colorscale=cmap,zmin=zmin, zmax=zmax),row=2, col=1)
             wlet_resolution =html.P(f" wavelet resolution: {np.round(Ncycle,1)} Cycles")
-        
+
+                
         fig3.update_xaxes(title_text ='time (ns)', row=2, col=1)
         fig3.update_yaxes(title_text ='Frequency (GHz)', row=2, col=1)
         fig3.update_yaxes(title_text ='Amplitude (V)', row=1, col=1)
         fig3.update_layout(showlegend=False)
 
-        return fig3, wlet_resolution
+
+        return fig3, wlet_resolution#,cmpa_scale
     else:
         return dash.no_update
 

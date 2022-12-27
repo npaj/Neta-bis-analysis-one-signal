@@ -2,6 +2,9 @@ import dash
 from dash import Dash, dcc, html
 import dash_bootstrap_components as dbc
 import configparser
+import plotly.express as px
+
+colorscales = px.colors.named_colorscales()
 
 wavelet_details = ["trial 'mu' values for wavelets",html.Br(),
 "gmw   : {'beta' -> 'mu' =60, 'gamma':3}",html.Br(),
@@ -39,11 +42,22 @@ file_card = dbc.Card(
                     [
                         # dbc.Label("Enter file path", style={'font-weight': 'bold'}),
                         # html.Br(),
+                        dbc.Label("Data format"), html.Br(),
+                        dcc.RadioItems(options=['LAUM', 'NETA'], value='LAUM',id='file_format'),
+                        html.Br(),
                         dcc.Input(id='filepath', type="text",
-                                  placeholder="paste file path...", name="file", size='37'),
+                                  placeholder="paste file path...", name="file", 
+                                  style={'width': '100%', 'height': 50},),
                         html.Br(),html.Br(),
                         # dbc.Label("Choose file"),
-                        dcc.Dropdown(id='file_list', options=[])
+                        dcc.Dropdown(id='file_list', options=[],
+                            style={'width': '100%', 'height': 50},),
+                        html.Br(),
+                        dcc.Textarea(
+                                        id='file_info',
+                                        value='file info',
+                                        style={'width': '100%', 'height': 100},
+                                        ),
 
                     ]
                 ),
@@ -172,6 +186,19 @@ time_freq_card = dbc.Card(
                     ],id='TF-parameters'
                 ),
                 html.Br(),
+                html.H6('Color Scale'),
+                html.Br(),
+                dcc.Dropdown(
+                    id='select_colorscales', 
+                    options=colorscales,
+                    value='jet'
+                    ),
+                html.Br(),
+
+                dcc.RangeSlider(0, 100,1,marks={100: {'label': '100 %'}}, tooltip={"placement": "bottom", "always_visible": True},
+                    value=[0,100], id='cmap-rangeslider'),
+                html.Br(),
+
                 dbc.Row(
                 [   
                     dbc.Button('Submit', id='submit-val_3', n_clicks=0,
